@@ -57,7 +57,7 @@
 
   function readInit() {
     return {
-      blue: Math.round(num('initBlue', 0, 5000, 30)),
+      blue: Math.round(num('initBlue', 0, 5000, 10)),
       red: Math.round(num('initRed', 0, 5000, 10)),
       yellow: Math.round(num('initYellow', 0, 5000, 10)),
       food: Math.round(num('initFood', 0, 5000, 30))
