@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mô phỏng hệ sinh thái</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Mô phỏng hệ sinh thái</h1>
+    <p class="legend">
+      <span class="dot blue"></span> Xanh dương
+      <span class="dot red"></span> Đỏ
+      <span class="dot yellow"></span> Vàng
+      <span class="dot food"></span> Hạt thức ăn
+    </p>
+  </header>
+
+  <main class="layout">
+    <section class="card">
+      <div class="status">
+        <strong id="clock">Tháng 1 · Ngày 1/30</strong>
+        <span id="total">Tổng: ngày 1</span>
+      </div>
+      <div class="daybar"><div id="dayFill"></div></div>
+      <canvas id="habitat" width="500" height="500"></canvas>
+      <div class="buttons">
+        <button id="btnStart" class="primary">Bắt đầu</button>
+        <button id="btnNext">Sang ngày kế</button>
+        <button id="btnReset">Reset</button>
+      </div>
+    </section>
+
+    <section class="side">
+      <div class="card">
+        <h2>Biểu đồ số lượng</h2>
+        <div class="chart">
+          <div class="col">
+            <div class="value" id="v-blue">0</div>
+            <div class="track"><div class="bar blue" id="bar-blue"></div></div>
+            <div class="label">Xanh dương</div>
+          </div>
+          <div class="col">
+            <div class="value" id="v-red">0</div>
+            <div class="track"><div class="bar red" id="bar-red"></div></div>
+            <div class="label">Đỏ</div>
+          </div>
+          <div class="col">
+            <div class="value" id="v-yellow">0</div>
+            <div class="track"><div class="bar yellow" id="bar-yellow"></div></div>
+            <div class="label">Vàng</div>
+          </div>
+          <div class="col">
+            <div class="value" id="v-food">0</div>
+            <div class="track"><div class="bar food" id="bar-food"></div></div>
+            <div class="label">Thức ăn</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Cài đặt</h2>
+        <p class="hint">Các ô ở nhóm đầu và nhóm thứ hai có hiệu lực ngay khi đang chạy.</p>
+
+        <fieldset>
+          <legend>Thời gian</legend>
+          <label>Giây / ngày <input id="secPerDay" type="number" min="0.1" step="0.5" value="5"></label>
+          <label>Ngày / tháng <input id="daysPerMonth" type="number" min="1" step="1" value="30"></label>
+          <label>Giây / tháng <input id="secPerMonth" type="text" readonly></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Môi trường và sinh học</legend>
+          <label>Cạnh hình vuông (px) <input id="size" type="number" min="200" max="900" step="50" value="500"></label>
+          <label>Thức ăn thêm / ngày <input id="foodPerDay" type="number" min="0" step="1" value="30"></label>
+          <label>Vàng → đỏ (%) <input id="yellowToRed" type="number" min="0" max="100" step="5" value="50"></label>
+          <label>Vàng → xanh (%) <input id="yellowToBlue" type="text" readonly></label>
+          <label>Trần thức ăn <input id="foodCap" type="number" min="1" step="10" value="300"></label>
+          <label>Trần dân số <input id="popCap" type="number" min="1" step="50" value="1500"></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Khởi tạo (áp dụng khi bấm Reset)</legend>
+          <label>Xanh dương <input id="initBlue" type="number" min="0" step="1" value="30"></label>
+          <label>Đỏ <input id="initRed" type="number" min="0" step="1" value="10"></label>
+          <label>Vàng <input id="initYellow" type="number" min="0" step="1" value="10"></label>
+          <label>Thức ăn <input id="initFood" type="number" min="0" step="1" value="30"></label>
+        </fieldset>
+      </div>
+
+      <div class="card">
+        <h2>Nhật ký</h2>
+        <ul id="log"></ul>
+      </div>
+    </section>
+  </main>
+
+  <details class="card rules">
+    <summary>Luật mô phỏng</summary>
+    <ul>
+      <li>Mỗi ngày có 100 bước. "Giây / ngày" chỉ là tốc độ phát, không đổi kết quả.</li>
+      <li>Sinh vật mới có 1 điểm no. Cuối ngày −1 điểm, còn ≤ 0 thì chết.</li>
+      <li>Một hạt cho 2 điểm no. Mỗi con ăn tối đa 1 bữa/ngày, ăn xong thì nghỉ (hiện mờ).</li>
+      <li>Sinh vật đói đi tới hạt gần nhất trong tầm nhìn, không thấy thì lang thang.</li>
+      <li>Tối đa 2 con tranh chấp một hạt (2 con tới gần nhất). Con thứ 3 bỏ qua hạt đó, vẫn đói và đi tìm hạt khác.</li>
+      <li>Khi 2 con tranh chấp, vàng đổi sang đỏ hoặc xanh trước (vĩnh viễn).
+        Đỏ - đỏ: đánh nhau, hạt hỏng. Đỏ - xanh: đỏ lấy hết, xanh vẫn sống và đói.
+        Xanh - xanh: mỗi con được 1 điểm.</li>
+      <li>Cuối ngày, ai còn ≥ 2 điểm no (sau khi trừ) đẻ 1 con cùng màu: con có 1 điểm, mẹ mất 1 điểm.</li>
+      <li>Mỗi ngày thêm thức ăn mới, thức ăn thừa giữ lại sang ngày sau.</li>
+    </ul>
+  </details>
+
+  <script src="script.js"></script>
+</body>
+</html>
