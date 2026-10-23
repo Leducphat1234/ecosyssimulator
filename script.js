@@ -56,7 +56,8 @@
       foodCap: Math.round(num('foodCap', 1, 5000, 300)),
       popCap: Math.round(num('popCap', 1, 5000, 1500)),
       repro: $('repro').value === 'sexual' ? 'sexual' : 'asexual',
-      litter: Math.round(num('litter', 1, 10, 2))
+      litter: Math.round(num('litter', 1, 10, 2)),
+      dispersal: num('dispersal', 0, 100, 0) / 100
     };
   }
 
@@ -102,6 +103,18 @@
   }
 
   // ---------- Tạo thế giới ----------
+  // Vị trí con mới quanh (x, y). Độ phát tán 0%: sát bố mẹ (±5px).
+  // Càng lớn thì càng rải xa, 100%: ngẫu nhiên đều khắp hình vuông (cuộn vòng ở mép).
+  function childPos(x, y) {
+    const size = state.size;
+    const half = Math.max(5, S.dispersal * size);
+    const wrap = (v) => ((v % size) + size) % size;
+    return {
+      x: wrap(x + (Math.random() * 2 - 1) * half),
+      y: wrap(y + (Math.random() * 2 - 1) * half)
+    };
+  }
+
   function makeCreature(type, x, y) {
     return { type, x, y, satiety: INIT_SATIETY, ate: false, wants: false, angle: Math.random() * Math.PI * 2 };
   }
@@ -279,9 +292,8 @@
     for (const c of survivors) {
       if (state.mode === 'asexual' && c.satiety >= REPRO_AT - 1e-9 && survivors.length + babies.length < S.popCap) {
         c.satiety -= REPRO_COST;
-        const bx = Math.min(state.size, Math.max(0, c.x + (Math.random() - 0.5) * 10));
-        const by = Math.min(state.size, Math.max(0, c.y + (Math.random() - 0.5) * 10));
-        babies.push(makeCreature(c.type, bx, by));
+        const pos = childPos(c.x, c.y);
+        babies.push(makeCreature(c.type, pos.x, pos.y));
       }
     }
     state.creatures = survivors.concat(babies);
@@ -344,9 +356,8 @@
       const my = (a.y + mate.y) / 2;
       for (let k = 0; k < S.litter; k++) {
         if (state.creatures.length + babies.length >= S.popCap) break;
-        const bx = Math.min(state.size, Math.max(0, mx + (Math.random() - 0.5) * 10));
-        const by = Math.min(state.size, Math.max(0, my + (Math.random() - 0.5) * 10));
-        babies.push(makeCreature(a.type, bx, by));
+        const pos = childPos(mx, my);
+        babies.push(makeCreature(a.type, pos.x, pos.y));
         state.born++;
       }
     }
@@ -471,7 +482,7 @@
     $('btnStart').textContent = 'Bắt đầu';
   });
 
-  const liveInputs = ['secPerDay', 'daysPerMonth', 'size', 'foodPerDay', 'yellowToRed', 'foodCap', 'popCap', 'litter'];
+  const liveInputs = ['secPerDay', 'daysPerMonth', 'size', 'foodPerDay', 'yellowToRed', 'foodCap', 'popCap', 'litter', 'dispersal'];
   for (const id of liveInputs) $(id).addEventListener('input', applySettings);
   $('repro').addEventListener('change', applySettings);
 

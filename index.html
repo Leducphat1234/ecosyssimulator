@@ -86,6 +86,7 @@
             </select>
           </label>
           <label>Số con mỗi cặp (hữu tính) <input id="litter" type="number" min="1" max="10" step="1" value="2"></label>
+          <label>Phát tán của con (%) <input id="dispersal" type="number" min="0" max="100" step="5" value="0"></label>
         </fieldset>
 
         <fieldset>
@@ -120,6 +121,8 @@
         (cùng màu, vàng chỉ hợp với vàng) cũng đang muốn sinh sản. Hai con gặp nhau thì mỗi con mất 1 điểm no và sinh ra
         "số con mỗi cặp" con (mặc định 2), mỗi con có 1 điểm no. Sinh xong thì quay lại đi tìm thức ăn bình thường.
         Không gặp được bạn thì cả ngày không ăn, cuối ngày vẫn bị trừ 1 điểm như thường.</li>
+      <li>Phát tán của con: 0% thì con mới xuất hiện sát bố mẹ (hàng xóm là họ hàng, dễ thành cụm cùng loài).
+        Càng cao thì con càng rải xa, 100% là xuất hiện ngẫu nhiên khắp hình vuông (các loài trộn đều).</li>
       <li>Mỗi ngày thêm thức ăn mới, thức ăn thừa giữ lại sang ngày sau.</li>
     </ul>
   </details>
