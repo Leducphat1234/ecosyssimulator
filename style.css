@@ -35,6 +35,16 @@ h2 { margin: 0 0 10px; font-size: 16px; }
 .dot.red { background: var(--red); }
 .dot.yellow { background: var(--yellow); }
 .dot.food { background: var(--food); border-radius: 2px; }
+.dot.mate { background: transparent; border: 2px solid #d81b60; width: 12px; height: 12px; }
+
+select {
+  width: 90px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 13px;
+  background: #fff;
+}
 
 .layout {
   display: flex;

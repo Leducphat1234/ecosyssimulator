@@ -7,7 +7,8 @@
   const INIT_SATIETY = 1;           // điểm no khi sinh ra
   const FOOD_POINTS = 2;            // điểm no của một hạt
   const REPRO_AT = 2;               // đủ điểm này (sau khi trừ cuối ngày) thì đẻ
-  const REPRO_COST = 1;             // mẹ mất điểm no khi đẻ
+  const REPRO_COST = 1;             // mẹ mất điểm no khi đẻ (vô tính)
+  const MATE_COST = 1;              // mỗi con trong cặp mất điểm no khi sinh sản hữu tính
   const STEP_RATIO = 0.012;         // bước đi = 1.2% cạnh hình vuông
   const VISION_RATIO = 0.3;         // tầm nhìn = 30% cạnh
   const REACH_STEPS = 2;            // "chạm tới hạt" = trong vòng 2 bước đi
@@ -31,7 +32,9 @@
     size: 500,
     log: [],
     spoiled: 0,   // số hạt bị đánh hỏng trong ngày
-    fed: 0        // số lần được cho ăn trong ngày
+    fed: 0,       // số lần được cho ăn trong ngày
+    mode: 'asexual', // chế độ sinh sản đang áp dụng: 'asexual' | 'sexual'
+    born: 0       // số con sinh ra bằng sinh sản hữu tính trong ngày
   };
 
   let S = null; // cài đặt hiện tại
@@ -51,21 +54,40 @@
       foodPerDay: Math.round(num('foodPerDay', 0, 1000, 30)),
       yellowToRed: num('yellowToRed', 0, 100, 50) / 100,
       foodCap: Math.round(num('foodCap', 1, 5000, 300)),
-      popCap: Math.round(num('popCap', 1, 5000, 1500))
+      popCap: Math.round(num('popCap', 1, 5000, 1500)),
+      repro: $('repro').value === 'sexual' ? 'sexual' : 'asexual',
+      litter: Math.round(num('litter', 1, 10, 2))
     };
   }
 
   function readInit() {
     return {
-      blue: Math.round(num('initBlue', 0, 5000, 10)),
+      blue: Math.round(num('initBlue', 0, 5000, 30)),
       red: Math.round(num('initRed', 0, 5000, 10)),
       yellow: Math.round(num('initYellow', 0, 5000, 10)),
       food: Math.round(num('initFood', 0, 5000, 30))
     };
   }
 
+  // Chế độ hữu tính: sinh vật có ≥ 2 điểm no vào đầu ngày thì muốn sinh sản,
+  // nhịn ăn cả ngày để tìm đồng loại cũng đang muốn sinh sản.
+  function assignDesires() {
+    const sexual = state.mode === 'sexual';
+    for (const c of state.creatures) {
+      c.wants = sexual && !c.ate && c.satiety >= REPRO_AT - 1e-9;
+    }
+  }
+
+  function syncMode() {
+    if (state.mode !== S.repro) {
+      state.mode = S.repro;
+      assignDesires();
+    }
+  }
+
   function applySettings() {
     S = readSettings();
+    syncMode();
     if (state.size !== S.size) {
       const k = S.size / state.size;
       for (const c of state.creatures) { c.x *= k; c.y *= k; }
@@ -81,7 +103,7 @@
 
   // ---------- Tạo thế giới ----------
   function makeCreature(type, x, y) {
-    return { type, x, y, satiety: INIT_SATIETY, ate: false, angle: Math.random() * Math.PI * 2 };
+    return { type, x, y, satiety: INIT_SATIETY, ate: false, wants: false, angle: Math.random() * Math.PI * 2 };
   }
 
   function spawnFood(n) {
@@ -108,6 +130,8 @@
     state.log = [];
     state.spoiled = 0;
     state.fed = 0;
+    state.born = 0;
+    state.mode = S.repro;
     for (const type of ['blue', 'red', 'yellow']) {
       for (let i = 0; i < init[type]; i++) {
         state.creatures.push(makeCreature(type, Math.random() * S.size, Math.random() * S.size));
@@ -127,17 +151,29 @@
     const vis2 = Math.pow(state.size * VISION_RATIO, 2);
     const size = state.size;
     const foods = state.foods;
+    const seekers = state.creatures.filter((c) => c.wants);
 
     for (const c of state.creatures) {
       if (c.ate) continue;
 
       let best = null;
       let bd = vis2;
-      for (let i = 0; i < foods.length; i++) {
-        const dx = foods[i].x - c.x;
-        const dy = foods[i].y - c.y;
-        const d = dx * dx + dy * dy;
-        if (d < bd) { bd = d; best = foods[i]; }
+      if (c.wants) {
+        // đang nhịn ăn: chỉ đi tìm đồng loại cũng đang muốn sinh sản
+        for (const o of seekers) {
+          if (o === c || o.type !== c.type) continue;
+          const dx = o.x - c.x;
+          const dy = o.y - c.y;
+          const d = dx * dx + dy * dy;
+          if (d < bd) { bd = d; best = o; }
+        }
+      } else {
+        for (let i = 0; i < foods.length; i++) {
+          const dx = foods[i].x - c.x;
+          const dy = foods[i].y - c.y;
+          const d = dx * dx + dy * dy;
+          if (d < bd) { bd = d; best = foods[i]; }
+        }
       }
 
       if (best) {
@@ -167,23 +203,28 @@
     state.fed++;
   }
 
+  // Vai trò trong một lần tranh chấp. Vàng chọn đỏ hoặc xanh theo xác suất
+  // cho riêng lần đó, không đổi màu thật và không nhớ sang lần sau.
+  function role(c) {
+    if (c.type !== 'yellow') return c.type;
+    return Math.random() < S.yellowToRed ? 'red' : 'blue';
+  }
+
   // group: 1 hoặc 2 sinh vật cùng chạm tới một hạt trong bước này
   function resolveContest(group) {
     if (group.length === 1) {
       feed(group[0], FOOD_POINTS);
       return;
     }
-    // 1) vàng đổi màu (vĩnh viễn) trước khi phân xử
-    for (const c of group) {
-      if (c.type === 'yellow') c.type = Math.random() < S.yellowToRed ? 'red' : 'blue';
-    }
-    // 2) phân xử đúng 2 con
+    // phân xử đúng 2 con theo vai trò của lần tranh chấp này
     const [a, b] = group;
-    if (a.type === 'red' && b.type === 'red') {
+    const ra = role(a);
+    const rb = role(b);
+    if (ra === 'red' && rb === 'red') {
       state.spoiled++;               // đỏ - đỏ: đánh nhau, hạt hỏng, không ai được ăn
-    } else if (a.type === 'red') {
+    } else if (ra === 'red') {
       feed(a, FOOD_POINTS);          // đỏ - xanh: đỏ chiếm hết, xanh vẫn đói
-    } else if (b.type === 'red') {
+    } else if (rb === 'red') {
       feed(b, FOOD_POINTS);
     } else {
       feed(a, FOOD_POINTS / 2);      // xanh - xanh: chia đôi
@@ -206,7 +247,7 @@
     for (const f of order) {
       const near = [];
       for (const c of state.creatures) {
-        if (c.ate) continue;
+        if (c.ate || c.wants) continue;   // đang nhịn ăn để tìm bạn thì không tranh hạt
         const dx = c.x - f.x;
         const dy = c.y - f.y;
         const d2 = dx * dx + dy * dy;
@@ -236,7 +277,7 @@
 
     const babies = [];
     for (const c of survivors) {
-      if (c.satiety >= REPRO_AT - 1e-9 && survivors.length + babies.length < S.popCap) {
+      if (state.mode === 'asexual' && c.satiety >= REPRO_AT - 1e-9 && survivors.length + babies.length < S.popCap) {
         c.satiety -= REPRO_COST;
         const bx = Math.min(state.size, Math.max(0, c.x + (Math.random() - 0.5) * 10));
         const by = Math.min(state.size, Math.max(0, c.y + (Math.random() - 0.5) * 10));
@@ -244,18 +285,20 @@
       }
     }
     state.creatures = survivors.concat(babies);
+    assignDesires();   // ngày mới: ai ≥ 2 điểm no thì muốn sinh sản (chỉ khi ở chế độ hữu tính)
 
     const room = Math.max(0, S.foodCap - state.foods.length);
     const added = Math.min(S.foodPerDay, room);
     spawnFood(added);
 
     const n = counts();
-    addLog('Ngày ' + state.day + ': +' + babies.length + ' sinh, −' + died + ' chết, ' +
+    addLog('Ngày ' + state.day + ': +' + (babies.length + state.born) + ' sinh, −' + died + ' chết, ' +
            state.spoiled + ' hạt hỏng. Còn ' + n.blue + ' xanh, ' + n.red + ' đỏ, ' +
            n.yellow + ' vàng, ' + state.foods.length + ' hạt.');
 
     state.spoiled = 0;
     state.fed = 0;
+    state.born = 0;
     state.day++;
 
     if (state.creatures.length === 0) {
@@ -264,8 +307,55 @@
     }
   }
 
+  // Hữu tính: hai con cùng loài, cùng đang muốn sinh sản, gặp nhau thì sinh con.
+  function resolveMating() {
+    if (state.mode !== 'sexual') return;
+    const pool = state.creatures.filter((c) => c.wants && !c.ate);
+    if (pool.length < 2) return;
+
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+    }
+
+    const reach = state.size * STEP_RATIO * REACH_STEPS;
+    const reach2 = reach * reach;
+    const babies = [];
+
+    for (const a of pool) {
+      if (!a.wants) continue;
+      let mate = null;
+      let bd = reach2;
+      for (const o of pool) {
+        if (o === a || !o.wants || o.type !== a.type) continue;
+        const dx = o.x - a.x;
+        const dy = o.y - a.y;
+        const d = dx * dx + dy * dy;
+        if (d <= bd) { bd = d; mate = o; }
+      }
+      if (!mate) continue;
+
+      a.wants = false;
+      mate.wants = false;
+      a.satiety -= MATE_COST;
+      mate.satiety -= MATE_COST;
+
+      const mx = (a.x + mate.x) / 2;
+      const my = (a.y + mate.y) / 2;
+      for (let k = 0; k < S.litter; k++) {
+        if (state.creatures.length + babies.length >= S.popCap) break;
+        const bx = Math.min(state.size, Math.max(0, mx + (Math.random() - 0.5) * 10));
+        const by = Math.min(state.size, Math.max(0, my + (Math.random() - 0.5) * 10));
+        babies.push(makeCreature(a.type, bx, by));
+        state.born++;
+      }
+    }
+    for (const b of babies) state.creatures.push(b);
+  }
+
   function stepTick() {
     moveAll();
+    resolveMating();
     resolveFoods();
     state.tick++;
     if (state.tick >= STEPS_PER_DAY) {
@@ -281,7 +371,7 @@
     state.last = now;
 
     S = readSettings();
-    if (S.size !== state.size) applySettings();
+    if (S.size !== state.size || S.repro !== state.mode) applySettings();
 
     state.acc += dt / S.secPerDay * STEPS_PER_DAY;
     let n = Math.floor(state.acc);
@@ -310,6 +400,7 @@
   function skipDay() {
     if (state.creatures.length === 0) return;
     S = readSettings();
+    syncMode();
     const d = state.day;
     let guard = 0;
     while (state.day === d && guard++ <= STEPS_PER_DAY) stepTick();
@@ -343,6 +434,13 @@
       ctx.beginPath();
       ctx.arc(c.x, c.y, 4.5, 0, Math.PI * 2);
       ctx.fill();
+      if (c.wants) {                 // viền hồng: đang nhịn ăn tìm bạn đời
+        ctx.strokeStyle = '#d81b60';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, 7.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
     ctx.globalAlpha = 1;
 
@@ -373,8 +471,9 @@
     $('btnStart').textContent = 'Bắt đầu';
   });
 
-  const liveInputs = ['secPerDay', 'daysPerMonth', 'size', 'foodPerDay', 'yellowToRed', 'foodCap', 'popCap'];
+  const liveInputs = ['secPerDay', 'daysPerMonth', 'size', 'foodPerDay', 'yellowToRed', 'foodCap', 'popCap', 'litter'];
   for (const id of liveInputs) $(id).addEventListener('input', applySettings);
+  $('repro').addEventListener('change', applySettings);
 
   buildWorld();
 })();
