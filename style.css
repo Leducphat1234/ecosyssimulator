@@ -147,6 +147,18 @@ input {
   font-size: 13px;
 }
 input[readonly] { background: #f1f4f8; color: #66707c; }
+
+.trait {
+  display: grid;
+  grid-template-columns: 1fr 70px 70px;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  margin: 5px 0;
+}
+.trait input { width: 100%; }
+.trait .dot { margin: 0 4px 0 0; }
+.trait.head { font-size: 12px; color: #66707c; margin-bottom: 0; }
 .hint { margin: 0 0 8px; font-size: 12px; color: #66707c; }
 
 #log { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.5; max-height: 180px; overflow-y: auto; }

@@ -9,9 +9,8 @@
   const REPRO_AT = 2;               // đủ điểm này (sau khi trừ cuối ngày) thì đẻ
   const REPRO_COST = 1;             // mẹ mất điểm no khi đẻ (vô tính)
   const MATE_COST = 1;              // mỗi con trong cặp mất điểm no khi sinh sản hữu tính
-  const STEP_RATIO = 0.012;         // bước đi = 1.2% cạnh hình vuông
-  const VISION_RATIO = 0.3;         // tầm nhìn = 30% cạnh
-  const REACH_STEPS = 2;            // "chạm tới hạt" = trong vòng 2 bước đi
+  const STEP_RATIO = 0.012;         // đơn vị khoảng chạm: 1.2% cạnh (tốc độ từng loài chỉnh riêng)
+  const REACH_STEPS = 2;            // "chạm tới hạt" = trong vòng 2 đơn vị, giống nhau cho mọi loài
   const LOG_MAX = 12;
 
   const COLORS = { blue: '#2f7bff', red: '#e53935', yellow: '#fbc02d', food: '#2ea44f' };
@@ -57,7 +56,18 @@
       popCap: Math.round(num('popCap', 1, 5000, 1500)),
       repro: $('repro').value === 'sexual' ? 'sexual' : 'asexual',
       litter: Math.round(num('litter', 1, 10, 2)),
-      dispersal: num('dispersal', 0, 100, 0) / 100
+      dispersal: num('dispersal', 0, 100, 0) / 100,
+      // tầm nhìn và tốc độ mỗi bước của từng loài, tính theo tỉ lệ cạnh hình vuông
+      vision: {
+        blue: num('visBlue', 1, 100, 30) / 100,
+        red: num('visRed', 1, 100, 30) / 100,
+        yellow: num('visYellow', 1, 100, 30) / 100
+      },
+      speed: {
+        blue: num('spdBlue', 0.1, 10, 1.2) / 100,
+        red: num('spdRed', 0.1, 10, 1.2) / 100,
+        yellow: num('spdYellow', 0.1, 10, 1.2) / 100
+      }
     };
   }
 
@@ -160,8 +170,6 @@
 
   // ---------- Mô phỏng ----------
   function moveAll() {
-    const step = state.size * STEP_RATIO;
-    const vis2 = Math.pow(state.size * VISION_RATIO, 2);
     const size = state.size;
     const foods = state.foods;
     const seekers = state.creatures.filter((c) => c.wants);
@@ -169,6 +177,8 @@
     for (const c of state.creatures) {
       if (c.ate) continue;
 
+      const step = size * S.speed[c.type];
+      const vis2 = Math.pow(size * S.vision[c.type], 2);
       let best = null;
       let bd = vis2;
       if (c.wants) {
@@ -482,7 +492,8 @@
     $('btnStart').textContent = 'Bắt đầu';
   });
 
-  const liveInputs = ['secPerDay', 'daysPerMonth', 'size', 'foodPerDay', 'yellowToRed', 'foodCap', 'popCap', 'litter', 'dispersal'];
+  const liveInputs = ['secPerDay', 'daysPerMonth', 'size', 'foodPerDay', 'yellowToRed', 'foodCap', 'popCap', 'litter', 'dispersal',
+    'visBlue', 'visRed', 'visYellow', 'spdBlue', 'spdRed', 'spdYellow'];
   for (const id of liveInputs) $(id).addEventListener('input', applySettings);
   $('repro').addEventListener('change', applySettings);
 

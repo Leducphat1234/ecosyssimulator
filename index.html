@@ -90,6 +90,20 @@
         </fieldset>
 
         <fieldset>
+          <legend>Tầm nhìn và tốc độ (% cạnh hình vuông)</legend>
+          <div class="trait head"><span></span><span>Tầm nhìn</span><span>Tốc độ/bước</span></div>
+          <div class="trait"><span><span class="dot blue"></span>Xanh dương</span>
+            <input id="visBlue" type="number" min="1" max="100" step="1" value="30">
+            <input id="spdBlue" type="number" min="0.1" max="10" step="0.1" value="1.2"></div>
+          <div class="trait"><span><span class="dot red"></span>Đỏ</span>
+            <input id="visRed" type="number" min="1" max="100" step="1" value="30">
+            <input id="spdRed" type="number" min="0.1" max="10" step="0.1" value="1.2"></div>
+          <div class="trait"><span><span class="dot yellow"></span>Vàng</span>
+            <input id="visYellow" type="number" min="1" max="100" step="1" value="30">
+            <input id="spdYellow" type="number" min="0.1" max="10" step="0.1" value="1.2"></div>
+        </fieldset>
+
+        <fieldset>
           <legend>Khởi tạo (áp dụng khi bấm Reset)</legend>
           <label>Xanh dương <input id="initBlue" type="number" min="0" step="1" value="30"></label>
           <label>Đỏ <input id="initRed" type="number" min="0" step="1" value="10"></label>
@@ -111,7 +125,8 @@
       <li>Mỗi ngày có 100 bước. "Giây / ngày" chỉ là tốc độ phát, không đổi kết quả.</li>
       <li>Sinh vật mới có 1 điểm no. Cuối ngày −1 điểm, còn ≤ 0 thì chết.</li>
       <li>Một hạt cho 2 điểm no. Mỗi con ăn tối đa 1 bữa/ngày, ăn xong thì nghỉ (hiện mờ).</li>
-      <li>Sinh vật đói đi tới hạt gần nhất trong tầm nhìn, không thấy thì lang thang.</li>
+      <li>Sinh vật đói đi tới hạt gần nhất trong tầm nhìn, không thấy thì lang thang. Tầm nhìn và tốc độ mỗi bước
+        chỉnh riêng cho từng loài. Đến hạt trước một mình thì được ăn trọn, không phải tranh chấp.</li>
       <li>Tối đa 2 con tranh chấp một hạt (2 con tới gần nhất). Con thứ 3 bỏ qua hạt đó, vẫn đói và đi tìm hạt khác.</li>
       <li>Khi 2 con tranh chấp, vàng chọn cư xử như đỏ hoặc như xanh cho riêng lần đó (không đổi màu thật, lần sau chọn lại).
         Đỏ - đỏ: đánh nhau, hạt hỏng. Đỏ - xanh: đỏ lấy hết, xanh vẫn sống và đói.
